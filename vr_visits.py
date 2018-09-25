@@ -65,8 +65,8 @@ for link in pages.find_all('a'):
 hrefs = []  
 dates = []
 
-for page in range(1, 2):
-# for page in range(1, last_page):
+# for page in range(1, 2):
+for page in range(1, last_page):
     page_content = read_page_content_bs(page_link, page)
     pl_sessions = page_content.find_all('div',  {'id': 'list_archive'})
     #Видаляємо зайвий div зі сторінками
