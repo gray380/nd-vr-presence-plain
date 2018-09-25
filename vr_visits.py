@@ -5,7 +5,6 @@ import operator
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import time
-# from time import time
 
 def requests_retry_session(
     retries=3,
@@ -26,7 +25,7 @@ def requests_retry_session(
     session.mount('https://', adapter)
     return session
     
-def read_page_content_bs(page_link,  page_number):
+def read_page_content(page_link,  page_number):
     content = None
     if page_number > 0:
         url = page_link % (page_number)
@@ -35,7 +34,7 @@ def read_page_content_bs(page_link,  page_number):
     try:
         response = requests_retry_session().get(url, timeout=(3.05, 15))
         if response.status_code == 200:
-            content = BeautifulSoup(response.content, 'lxml')
+            content = response.text
         else:
             print(response.status_code)
             print(url)
@@ -52,8 +51,9 @@ timestr = time.strftime("%y%m%d-%H%M")
 # Визначаємо загальну кількість сторінок
 page=1
 page_link = 'http://iportal.rada.gov.ua/news/Rstr_nd/page/%d'
-page_content = read_page_content_bs(page_link, page)
-pages = page_content.find(class_='pages')
+page_content = read_page_content(page_link, page)
+page_content_soup = BeautifulSoup(page_content, 'lxml')
+pages = page_content_soup.find(class_='pages') 
 last_page = 0
 for link in pages.find_all('a'):
         page_ref = link.get('href').split('/')
@@ -65,10 +65,10 @@ for link in pages.find_all('a'):
 hrefs = []  
 dates = []
 
-# for page in range(1, 2):
-for page in range(1, last_page):
-    page_content = read_page_content_bs(page_link, page)
-    pl_sessions = page_content.find_all('div',  {'id': 'list_archive'})
+for page in range(1, last_page+1):
+    page_content = read_page_content(page_link, page)
+    pl_sessions_soup = BeautifulSoup(page_content, 'lxml')
+    pl_sessions = pl_sessions_soup.find_all('div',  {'id': 'list_archive'})
     #Видаляємо зайвий div зі сторінками
     for pl_session in pl_sessions:
         pl_session.find('div',  {'class': 'pages'}).decompose()
@@ -80,22 +80,18 @@ for page in range(1, last_page):
             hrefs.append(_span_hrefs.find('a').get('href'))
 
 # Створюємо список посилань на списки у plain html (time consuming)
-# fin_url = []
 bad_url = []
 p0 = []
 p1 = []
 p2 = []
 res_table = []
 
-# Для моніторінгу за циклами
-# start_time = time()
-# func_requests = 0
-
 for plsession in range(0, len(hrefs)):
     page_link = hrefs[plsession]
     if requests_retry_session().get(page_link).status_code == 200:
-        temp_content = read_page_content_bs(page_link, 0)
-        plain_href = temp_content.find('a',  href=lambda href: href and 'ns_reg_print' in href  and 'vid=0' in href).get('href')
+        temp_content = read_page_content(page_link, 0)
+        temp_content_soup = BeautifulSoup(temp_content, 'lxml')
+        plain_href = temp_content_soup.find('a',  href=lambda href: href and 'ns_reg_print' in href  and 'vid=0' in href).get('href')
         visits = pd.read_html(plain_href)[-1]
         p1 = pd.DataFrame({'ПІБ': visits[0], 
                             dates[plsession]: visits[1]})
