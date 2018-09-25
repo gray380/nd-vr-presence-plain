@@ -65,7 +65,8 @@ for link in pages.find_all('a'):
 hrefs = []  
 dates = []
 
-for page in range(1, last_page+1):
+for page in range(14, 17):
+# for page in range(1, last_page+1):
     page_content = read_page_content(page_link, page)
     pl_sessions_soup = BeautifulSoup(page_content, 'lxml')
     pl_sessions = pl_sessions_soup.find_all('div',  {'id': 'list_archive'})
@@ -80,7 +81,7 @@ for page in range(1, last_page+1):
             hrefs.append(_span_hrefs.find('a').get('href'))
 
 # Створюємо список посилань на списки у plain html (time consuming)
-bad_url = []
+bad_urls = []
 p0 = []
 p1 = []
 p2 = []
@@ -106,11 +107,13 @@ for plsession in range(0, len(hrefs)):
             p0 = p0.set_index('ПІБ')
             res_table = res_table.join(p0)
     else:
-        bad_url.append(page_link)
+        bad_urls.append(page_link)
     
 
 res_table.to_csv(timestr+'-res_table.csv')
-if not bad_url:
+if not bad_urls:
     print("Всі посилання на пленарні засідання було оброблено")
 else:
-    print("Наступні посилання не вдалось обробити:", bad_url)
+    print("Наступні посилання не вдалось обробити:")
+    for bad_url in bad_urls:
+        print('\t', bad_url, '\n')
