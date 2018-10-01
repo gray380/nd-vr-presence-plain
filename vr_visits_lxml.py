@@ -1,6 +1,5 @@
 import requests
 from lxml import html
-from lxml import etree
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import pandas as pd
@@ -85,7 +84,7 @@ p1 = []
 p2 = []
 res_table = []
 
-# Сортування: 0 - по н. депктатах; 1 - по фракціях
+# Сортування: 0 - по н. депутатах; 1 - по фракціях
 vid_pr = 0
 
 for plsession in range(0, len(hrefs)):
