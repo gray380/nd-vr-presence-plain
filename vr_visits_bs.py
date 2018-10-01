@@ -41,33 +41,32 @@ def read_page_content(page_link,  page_number):
     except Exception as e:
         print('It failed :(', e.__class__.__name__)
         print(str(e))
-    #else:
-    #    print('It eventually worked', response.status_code)
     return content
 
-# Генеруємо префікс для вихідного файлу
-timestr = time.strftime("%y%m%d-%H%M")
+def find_last_page_bs(content):
+    soup = BeautifulSoup(content, 'lxml')
+    pages = soup.find(class_='pages') 
+    last_page = 0
+    for link in pages.find_all('a'):
+            page_ref = link.get('href').split('/')
+            page_num = int(page_ref[-1])
+            if page_num > last_page:
+                last_page = page_num
+    return last_page
 
 # Визначаємо загальну кількість сторінок
-page=1
-page_link = 'http://iportal.rada.gov.ua/news/Rstr_nd/page/%d'
-page_content = read_page_content(page_link, page)
-page_content_soup = BeautifulSoup(page_content, 'lxml')
-pages = page_content_soup.find(class_='pages') 
-last_page = 0
-for link in pages.find_all('a'):
-        page_ref = link.get('href').split('/')
-        page_num = int(page_ref[-1])
-        if page_num > last_page:
-            last_page = page_num
+start_page_link = 'http://iportal.rada.gov.ua/news/Rstr_nd/page/%d'
+start_page=1
+
+start_page_content = read_page_content(start_page_link, start_page)
+last_page = find_last_page_bs(start_page_content)
 
 # Створюємо списки дат та посилань
 hrefs = []  
 dates = []
 
-for page in range(14, 17):
-# for page in range(1, last_page+1):
-    page_content = read_page_content(page_link, page)
+for page in range(1, last_page+1):
+    page_content = read_page_content(start_page_link, page)
     pl_sessions_soup = BeautifulSoup(page_content, 'lxml')
     pl_sessions = pl_sessions_soup.find_all('div',  {'id': 'list_archive'})
     #Видаляємо зайвий div зі сторінками
@@ -109,8 +108,10 @@ for plsession in range(0, len(hrefs)):
     else:
         bad_urls.append(page_link)
     
+# Генеруємо префікс для вихідного файлу
+timestr = time.strftime("%y%m%d-%H%M")
 
-res_table.to_csv(timestr+'-res_table.csv')
+res_table.to_csv(timestr+'-res_table_bs.csv')
 if not bad_urls:
     print("Всі посилання на пленарні засідання було оброблено")
 else:

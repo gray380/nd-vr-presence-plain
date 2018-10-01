@@ -67,8 +67,7 @@ last_page = find_last_page_lxml(start_page_content)
 hrefs = []  
 dates = []
 
-# for page in range(1, last_page+1):
-for page in range(1, 9):
+for page in range(1, last_page+1):
     page_content = read_page_content(start_page_link, page)
     pl_sessions_tree = html.fromstring(page_content)
     pl_sessions_div = pl_sessions_tree.xpath('//div[@class = "information_block archieve_block"]')[0]
