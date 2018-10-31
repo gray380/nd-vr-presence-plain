@@ -90,8 +90,7 @@ last_page = find_last_page_bs(start_page_content)
 hrefs = []  
 dates = []
 
-for page in range(1, 3):
-# for page in range(1, last_page+1):
+for page in range(1, last_page+1):
     page_content = read_page_content(start_page_link, page)
     pl_sessions_soup = BeautifulSoup(page_content, 'lxml')
     pl_sessions = pl_sessions_soup.find_all('div',  {'id': 'list_archive'})
