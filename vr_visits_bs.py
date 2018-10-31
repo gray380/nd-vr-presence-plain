@@ -54,6 +54,31 @@ def find_last_page_bs(content):
                 last_page = page_num
     return last_page
 
+def page_parse(page_link):
+    # Тимчасові структури для об'єднання двох таблиць в одну
+    p0 = []
+    p1 = []
+    p2 = []
+    # Визначаємо індекс для поєднання hrefs та dates
+    plsession = hrefs.index(page_link)
+    
+    if requests_retry_session().get(page_link).status_code == 200:
+        temp_content = read_page_content(page_link, 0)
+        temp_content_soup = BeautifulSoup(temp_content, 'lxml')
+        plain_href = temp_content_soup.find('a',  href=lambda href: href and 'ns_reg_print' in href  and 'vid=0' in href).get('href')
+        visits = pd.read_html(plain_href)[-1]
+        p1 = pd.DataFrame({'ПІБ': visits[0], 
+                            dates[plsession]: visits[1]})
+        p2 = pd.DataFrame({'ПІБ': visits[2], 
+                            dates[plsession]: visits[3]})
+        p0 = pd.concat([p1, p2], ignore_index=True).dropna()
+        # У ВР присутні дві сутності "Тимошенко Ю.В.", перейменовуємо ту, що чоловічого роду
+        p0.loc[operator.or_(operator.and_(p0['ПІБ'] == 'Тимошенко Ю.В.',  p0[dates[plsession]] == 'Присутній'), operator.and_(p0['ПІБ'] == 'Тимошенко Ю.В.',  p0[dates[plsession]] == 'Відсутній')), 'ПІБ'] = 'Тимошенко Ю.Вл.'
+        p0 = p0.set_index('ПІБ')
+    else:
+        bad_urls.append(page_link)
+    return p0
+
 # Визначаємо загальну кількість сторінок
 start_page_link = 'http://iportal.rada.gov.ua/news/Rstr_nd/page/%d'
 start_page=1
@@ -65,7 +90,8 @@ last_page = find_last_page_bs(start_page_content)
 hrefs = []  
 dates = []
 
-for page in range(1, last_page+1):
+for page in range(1, 3):
+# for page in range(1, last_page+1):
     page_content = read_page_content(start_page_link, page)
     pl_sessions_soup = BeautifulSoup(page_content, 'lxml')
     pl_sessions = pl_sessions_soup.find_all('div',  {'id': 'list_archive'})
@@ -81,32 +107,14 @@ for page in range(1, last_page+1):
 
 # Створюємо список посилань на списки у plain html (time consuming)
 bad_urls = []
-p0 = []
-p1 = []
-p2 = []
 res_table = []
 
-for plsession in range(0, len(hrefs)):
-    page_link = hrefs[plsession]
-    if requests_retry_session().get(page_link).status_code == 200:
-        temp_content = read_page_content(page_link, 0)
-        temp_content_soup = BeautifulSoup(temp_content, 'lxml')
-        plain_href = temp_content_soup.find('a',  href=lambda href: href and 'ns_reg_print' in href  and 'vid=0' in href).get('href')
-        visits = pd.read_html(plain_href)[-1]
-        p1 = pd.DataFrame({'ПІБ': visits[0], 
-                            dates[plsession]: visits[1]})
-        p2 = pd.DataFrame({'ПІБ': visits[2], 
-                            dates[plsession]: visits[3]})
-        p0 = pd.concat([p1, p2], ignore_index=True).dropna()
-        # У ВР присутні дві сутності "Тимошенко Ю.В.", перейменовуємо ту, що чоловічого роду
-        p0.loc[operator.or_(operator.and_(p0['ПІБ'] == 'Тимошенко Ю.В.',  p0[dates[plsession]] == 'Присутній'), operator.and_(p0['ПІБ'] == 'Тимошенко Ю.В.',  p0[dates[plsession]] == 'Відсутній')), 'ПІБ'] = 'Тимошенко Ю.Вл.'
-        if plsession == 0:
-            res_table = p0.copy().set_index('ПІБ')
-        else:
-            p0 = p0.set_index('ПІБ')
-            res_table = res_table.join(p0)
+for href in hrefs:
+    if len(res_table) == 0:
+        res_table = page_parse(href).copy()
     else:
-        bad_urls.append(page_link)
+        res_table = res_table.join(page_parse(href)) # депутати, які актуальні на даний момент
+        # res_table = res_table.join(page_parse(href), how='outer') # всі депутати за весь період каденції
     
 # Генеруємо префікс для вихідного файлу
 timestr = time.strftime("%y%m%d-%H%M")
