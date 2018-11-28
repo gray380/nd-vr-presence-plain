@@ -106,7 +106,7 @@ for page in range(1, last_page+1):
 
 # Створюємо список посилань на списки у plain html (time consuming)
 bad_urls = [] # список посилань, які сценарій не зміг обробити
-res_table = []
+res_table = pd.DataFrame()
 
 for href in hrefs:
     if len(res_table) == 0:
